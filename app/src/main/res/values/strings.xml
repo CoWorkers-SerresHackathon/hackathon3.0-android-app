@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Hackathon3.0 App</string>
     <string name="title_activity_maps">Map</string>
+    <string name="google_url">https://maps.googleapis.com/maps/api/directions/json?origin=</string>
     <string name="checkForNetworkMessage">You have to be online to show the map</string>
     <string name="exitTheAppMessage">Are you sure you want to exit the app?</string>
     <string name="retry">Retry</string>

@@ -15,6 +15,11 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import es.usc.citius.hipster.algorithm.Hipster;
+import es.usc.citius.hipster.graph.GraphBuilder;
+import es.usc.citius.hipster.graph.GraphSearchProblem;
+import es.usc.citius.hipster.graph.HipsterDirectedGraph;
+import es.usc.citius.hipster.model.problem.SearchProblem;
 import libs.mjn.prettydialog.PrettyDialog;
 import libs.mjn.prettydialog.PrettyDialogCallback;
 
@@ -24,6 +29,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private NetworkAvailability network;
     private FrameLayout progressBar;
     private PrettyDialog dialog;
+    public final static double earthRadius = 6371e3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,37 +99,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        // Add a marker in Sydney and move the camera
-       /* LatLng serres = new LatLng(41.092083, 23.541016);
-        mMap.addMarker(new MarkerOptions().position(serres).title("Serres"));
-
-        LatLng provatas = new LatLng(41.068238, 23.390686);
-        mMap.addMarker(new MarkerOptions().position(provatas).title("provatas"));
-
-        LatLng akamila = new LatLng(41.058320, 23.424134);
-        mMap.addMarker(new MarkerOptions().position(akamila).title("akamila"));
-
-        Polyline polyline1 = googleMap.addPolyline(new PolylineOptions()
-                .clickable(true)
-                .add(serres, provatas, akamila));
-
-        LatLng kkamila = new LatLng(41.020431, 23.483293);
-        mMap.addMarker(new MarkerOptions().position(kkamila).title("kkamila"));
-
-        LatLng kmitrousi = new LatLng(41.058680, 23.457547);
-        mMap.addMarker(new MarkerOptions().position(kmitrousi).title("kmitrousi"));
-
-        LatLng koumaria = new LatLng(41.016434, 23.434656);
-        mMap.addMarker(new MarkerOptions().position(koumaria).title("koumaria"));
-
-        LatLng skoutari = new LatLng(41.016434, 23.434656);
-        mMap.addMarker(new MarkerOptions().position(skoutari).title("skoutari"));*/
-
         getTheLocationsAndAddMarkersOnMap(googleMap);
 
 
         //mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(41.092083, 23.541016), 7.0f));
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(41.092083, 23.541016), 11.0f));
     }
 
     private void getTheLocationsAndAddMarkersOnMap(GoogleMap mMap) {
@@ -172,15 +152,71 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         addPolyline(mMap, koumaria, adelfiko);
         addPolyline(mMap, ageleni, peponia);
         addPolyline(mMap, peponia, adelfiko);
+
+        HipsterDirectedGraph<String, Double> graph = GraphBuilder.<String, Double>create()
+                .connect("serres").to("provatas").withEdge(getTheDistance(serres, provatas))
+                .connect("serres").to("kmitrousi").withEdge(getTheDistance(serres, kmitrousi))
+                .connect("serres").to("skoutari").withEdge(getTheDistance(serres, skoutari))
+                .connect("provatas").to("akamila").withEdge(getTheDistance(provatas, akamila))
+                .connect("kmitrousi").to("akamila").withEdge(getTheDistance(kmitrousi, akamila))
+                .connect("kmitrousi").to("kkamila").withEdge(getTheDistance(kmitrousi, kkamila))
+                .connect("kmitrousi").to("koumaria").withEdge(getTheDistance(kmitrousi, koumaria))
+                .connect("skoutari").to("kkamila").withEdge(getTheDistance(skoutari, kkamila))
+                .connect("skoutari").to("ageleni").withEdge(getTheDistance(skoutari, ageleni))
+                .connect("skoutari").to("peponia").withEdge(getTheDistance(skoutari, peponia))
+                .connect("akamila").to("koumaria").withEdge(getTheDistance(akamila, koumaria))
+                .connect("kkamila").to("koumaria").withEdge(getTheDistance(kkamila, koumaria))
+                .connect("koumaria").to("adelfiko").withEdge(getTheDistance(koumaria, adelfiko))
+                .connect("ageleni").to("peponia").withEdge(getTheDistance(ageleni, peponia))
+                .connect("peponia").to("adelfiko").withEdge(getTheDistance(peponia, adelfiko))
+                .createDirectedGraph();
+
+        SearchProblem problem = GraphSearchProblem.startingFrom("serres").in(graph).takeCostsFromEdges().build();
+        System.out.println("Check graph Here " + Hipster.createDepthFirstSearch(problem).search("adelfiko"));
     }
 
     private void addPolyline(GoogleMap googleMap, LatLng start, LatLng end) {
         Polyline polyline = googleMap.addPolyline(new PolylineOptions()
                 .clickable(true)
                 .add(start, end));
-
-
     }
 
+    private double getTheDistance(LatLng s, LatLng e) {
+        double distance = 0.0;
+        double lat1 = Math.toRadians(s.latitude);
+        double lon1 = Math.toRadians(s.longitude);
+        double lat2 = Math.toRadians(e.latitude);
+        double lon2 = Math.toRadians(e.longitude);
+        double dLat = Math.toRadians(e.latitude - s.latitude);
+        double dLon = Math.toRadians(e.longitude - s.longitude);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1) * Math.cos(lat2) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
+        distance = earthRadius * c;
+        return distance;
+    }
+
+    /*private void getTheDistance(LatLng start, LatLng end){
+        if(network.isNetworkWorks()) {
+            String url = getString(R.string.google_url);
+            url += start.latitude+","+start.longitude + "&destination=" + end.latitude+","+end.longitude  + "&key=" + getString(R.string.google_maps_key);
+            System.out.println("Check url Here " + url);
+
+            AndroidNetworking.get(url)
+                    .setPriority(Priority.HIGH)
+                    .build()
+                    .getAsJSONObject(new JSONObjectRequestListener() {
+                        @Override
+                        public void onResponse(JSONObject response) {
+                            System.out.println("Check response Here " + response.toString());
+                        }
+
+                        @Override
+                        public void onError(ANError anError) {
+                            System.out.println("Check error Here " + anError.toString());
+                        }
+                    });
+        }
+    }*/
 }
