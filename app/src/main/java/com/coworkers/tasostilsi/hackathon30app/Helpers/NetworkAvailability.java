@@ -1,4 +1,4 @@
-package com.coworkers.tasostilsi.hackathon30app;
+package com.coworkers.tasostilsi.hackathon30app.Helpers;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
